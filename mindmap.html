@@ -160,7 +160,7 @@
         <svg id="markmap"></svg>
         <div id="markmap-status" class="status-message">請從左側選擇一個筆記檔案</div>
     </div>
-    <!-- 加 defer，讓 JS 等 DOM 解析完成再載入 -->
+    <!-- 必要函式庫用 defer，確保 DOM 完成 -->
     <script src="https://cdn.jsdelivr.net/npm/d3@7" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.17" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/markmap-view@0.17" defer></script>
@@ -177,7 +177,7 @@
         let activeLink = null;
         let mm;
 
-        // 等待 Markmap 函式庫載入完成（新增）
+        // 載入 Markmap 函式庫檢查，增加逾時防呆
         async function waitForMarkmapLibrary(timeout = 5000) {
             const start = Date.now();
             while (Date.now() - start < timeout) {
@@ -190,7 +190,6 @@
             throw new Error('Markmap 函式庫尚未載入完成 (逾時)');
         }
 
-        // ====== 1. Markmap 渲染核心函式 (v1.1.1) ======
         async function renderMarkmap(filePath, sourceLink) {
             const markmapStatus = document.getElementById('markmap-status');
             const markmapEl = document.getElementById('markmap');
@@ -202,11 +201,8 @@
             markmapStatus.textContent = `正在載入 ${filePath} 的內容...`;
             markmapStatus.className = 'status-message';
             markmapStatus.style.display = 'block';
-
             try {
-                // 等待 Markmap 函式庫載入（新增容錯）
                 await waitForMarkmapLibrary();
-
                 const rawFileUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH_NAME}/${filePath}`;
                 const response = await fetch(rawFileUrl);
                 if (!response.ok) {
@@ -235,7 +231,6 @@
             }
         }
 
-        // ====== 2. 檔案樹資料處理 (v1.1.1) ======
         async function fetchFileTree() {
             const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/git/trees/${BRANCH_NAME}?recursive=1`;
             const response = await fetch(apiUrl);
@@ -293,7 +288,6 @@
             return root;
         }
 
-        // ====== 3. 渲染側邊欄 (Tree View) (v1.1.1) ======
         function createTreeViewNode(node) {
             const li = document.createElement('li');
             li.className = 'tree-node';
@@ -346,7 +340,6 @@
             return true;
         }
 
-        // ====== 4. 初始化應用程式 (v1.1.1) ======
         async function initializeApp() {
             const container = document.getElementById('file-tree-container');
             const statusEl = document.getElementById('sidebar-status');
@@ -382,7 +375,6 @@
             }
         }
 
-        // ====== 5. 處理瀏覽器返回/前進按鈕 (v1.1.1) ======
         window.addEventListener('popstate', (event) => {
             let path;
             if (event.state && event.state.path) {
@@ -395,7 +387,6 @@
             }
         });
 
-        // ====== 6. v1.1.1: 處理側邊欄寬度調整 ======
         function setupResizer() {
             const resizer = document.getElementById('resizer');
             if (!resizer) return;
@@ -427,7 +418,7 @@
             });
         }
 
-        // v1.1.1 修正: 使用 'load' 事件代替 'DOMContentLoaded'
+        // v1.1.1 使用 'load' 事件並等候函式庫完整載入
         window.addEventListener('load', async () => {
             try {
                 await waitForMarkmapLibrary();
@@ -435,6 +426,7 @@
                 setupResizer();
             } catch (error) {
                 document.getElementById('markmap-status').textContent = `❌ 錯誤: ${error.message}`;
+                document.getElementById('markmap-status').className = 'status-message error';
             }
         });
     </script>
