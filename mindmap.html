@@ -5,12 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Markmap 樹狀檢視器 v1.1.1</title>
     <style>
-        /* v1.1.1: 使用 CSS 變數來控制側邊欄寬度 */
         :root {
             --sidebar-width: 320px;
         }
-
-        /* 基礎樣式和佈局 */
         body {
             margin: 0;
             display: flex;
@@ -18,25 +15,21 @@
             color: #333;
             background-color: #fff;
             height: 100vh;
-            overflow: hidden; /* 防止 body 滾動 */
+            overflow: hidden;
         }
-
-        /* --- 側邊欄樣式 (可滾動) --- */
         #sidebar {
-            width: var(--sidebar-width); /* v1.1.1: 使用變數 */
-            min-width: 200px; /* v1.1.1: 增加最小寬度 */
-            max-width: 80vw;  /* v1.1.1: 增加最大寬度 */
+            width: var(--sidebar-width);
+            min-width: 200px;
+            max-width: 80vw;
             height: 100vh;
-            overflow-y: auto; /* 僅側邊欄可滾動 */
+            overflow-y: auto;
             border-right: 1px solid #e0e0e0;
             box-sizing: border-box;
             background-color: #f9f9f9;
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
             padding: 0;
-            /* v1.1.1: 確保側邊欄本身不被選取 */
             user-select: none;
         }
-
         #sidebar-header {
             padding: 20px 25px;
             margin: 0;
@@ -48,23 +41,18 @@
             top: 0;
             z-index: 10;
         }
-        
         #file-tree-container {
             padding: 10px 20px;
         }
-
-        /* --- 樹狀檢視 (Tree View) 樣式 --- */
         .tree-node {
             list-style-type: none;
             margin: 2px 0;
         }
-
         .tree-node ul {
             padding-left: 20px;
             margin: 5px 0 5px 12px;
             border-left: 1px dashed #ccc;
         }
-
         .tree-folder-title {
             cursor: pointer;
             padding: 5px 8px;
@@ -74,11 +62,9 @@
             font-weight: 500;
             transition: background-color 0.2s ease;
         }
-
         .tree-folder-title:hover {
             background-color: #e0e7ff;
         }
-
         .tree-folder-title .icon {
             display: inline-block;
             width: 16px;
@@ -86,15 +72,12 @@
             margin-right: 5px;
             transition: transform 0.1s ease-in-out;
         }
-
         .tree-node.collapsed > .tree-folder-title .icon {
             transform: rotate(-90deg);
         }
-
         .tree-node.collapsed > ul {
             display: none;
         }
-
         .tree-file {
             display: block;
             padding: 5px 8px 5px 30px; 
@@ -106,23 +89,18 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            /* v1.1.1: 允許檔案名稱被選取 */
             user-select: text; 
         }
-
         .tree-file:hover {
             background-color: #e0e7ff;
             color: #1a73e8;
         }
-
         .tree-file.active {
             font-weight: bold;
             background-color: #1a73e8;
             color: #ffffff;
             border-color: #1a73e8;
         }
-
-        /* --- v1.1.1: 側邊欄寬度調整器 --- */
         #resizer {
             width: 5px;
             height: 100vh;
@@ -132,26 +110,20 @@
         }
         #resizer:hover,
         #resizer.resizing {
-            background: #1a73e8; /* 拖曳時顯示高亮 */
+            background: #1a73e8;
         }
-
-        /* --- Markmap 容器樣式 --- */
         #markmap-container {
             flex-grow: 1;
             height: 100vh;
             overflow: hidden;
             position: relative;
-            /* v1.1.1: 確保 flex 容器能正常縮放 */
             width: 0;
         }
-
         #markmap {
             display: block;
             width: 100%;
             height: 100%;
         }
-
-        /* 載入和錯誤提示 */
         .status-message {
             position: absolute;
             top: 50%;
@@ -164,9 +136,8 @@
             border-radius: 8px;
         }
         .status-message.error {
-            color: #D32F2F; /* 紅色 */
+            color: #D32F2F;
         }
-        
         .sidebar-status {
             padding: 20px;
             font-size: 1rem;
@@ -175,98 +146,88 @@
         .sidebar-status.error {
              color: #D32F2F;
         }
-
     </style>
 </head>
 <body>
     <div id="sidebar">
         <h3 id="sidebar-header">📂 筆記檔案列表</h3>
         <div id="file-tree-container">
-            <!-- 檔案樹將在這裡動態生成 -->
             <div class="sidebar-status" id="sidebar-status">正在載入...</div>
         </div>
     </div>
-    
-    <!-- v1.1.1: 新增寬度調整器 -->
     <div id="resizer"></div>
-
     <div id="markmap-container">
         <svg id="markmap"></svg>
         <div id="markmap-status" class="status-message">請從左側選擇一個筆記檔案</div>
     </div>
-    
-    <!-- 引入 Markmap 必要函式庫 (透過 CDN) -->
-    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-    <script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.17"></script>
-    <script src="https://cdn.jsdelivr.net/npm/markmap-view@0.17"></script>
-
+    <!-- 加 defer，讓 JS 等 DOM 解析完成再載入 -->
+    <script src="https://cdn.jsdelivr.net/npm/d3@7" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.17" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/markmap-view@0.17" defer></script>
     <script>
-        // =================================================================
-        //                 🔔 GitHub 資訊 (請修改這裡) 🔔
-        // =================================================================
+        // ===============================================
+        // 🔔 GitHub 資訊 (請修改這裡)
+        // ===============================================
         const GITHUB_USERNAME = 'klhrd';      
         const REPO_NAME = 'class_note';       
         const BRANCH_NAME = 'main'; // 或是 'master'
-        // =================================================================
-        
+        // ===============================================
         const MARKDOWN_EXTENSION = '.md';
-        
         const fileLinksMap = new Map();
         let activeLink = null;
-        let mm; // Markmap 實例
+        let mm;
+
+        // 等待 Markmap 函式庫載入完成（新增）
+        async function waitForMarkmapLibrary(timeout = 5000) {
+            const start = Date.now();
+            while (Date.now() - start < timeout) {
+                if (typeof window.markmap?.Markmap?.create === 'function' 
+                 && typeof window.markmap?.transform === 'function') {
+                    return true;
+                }
+                await new Promise(res => setTimeout(res, 100));
+            }
+            throw new Error('Markmap 函式庫尚未載入完成 (逾時)');
+        }
 
         // ====== 1. Markmap 渲染核心函式 (v1.1.1) ======
         async function renderMarkmap(filePath, sourceLink) {
             const markmapStatus = document.getElementById('markmap-status');
             const markmapEl = document.getElementById('markmap');
-            
             if (mm) {
                 mm.destroy();
                 mm = null;
             }
             markmapEl.innerHTML = ''; 
             markmapStatus.textContent = `正在載入 ${filePath} 的內容...`;
-            markmapStatus.className = 'status-message'; 
+            markmapStatus.className = 'status-message';
             markmapStatus.style.display = 'block';
 
             try {
-                // v1.1.1 修正: 檢查 window.markmap 是否已準備好
-                if (typeof window.markmap?.transform !== 'function' || typeof window.markmap?.Markmap?.create !== 'function') {
-                    throw new Error("Markmap 函式庫尚未載入完成。");
-                }
+                // 等待 Markmap 函式庫載入（新增容錯）
+                await waitForMarkmapLibrary();
 
                 const rawFileUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH_NAME}/${filePath}`;
-                
                 const response = await fetch(rawFileUrl);
                 if (!response.ok) {
                     throw new Error(`無法載入檔案 (HTTP ${response.status})`);
                 }
                 const markdownContent = await response.text();
-                
-                // v1.1.1 修正: 從 window.markmap 解構
                 const { transform, Markmap } = window.markmap; 
-                
                 if (!markdownContent.trim()) {
                     throw new Error("檔案內容為空。");
                 }
-                
                 const { root, features } = transform(markdownContent);
-                
                 markmapStatus.style.display = 'none';
-                
-                // v1.1.1 修正: 使用解構出來的 Markmap
                 mm = Markmap.create(markmapEl, null, root); 
-                
                 if (sourceLink) {
                     if (activeLink) {
                         activeLink.classList.remove('active');
                     }
                     sourceLink.classList.add('active');
                     activeLink = sourceLink;
-                    
                     history.pushState({ path: filePath }, null, `#${filePath}`);
                 }
-
             } catch (error) {
                 console.error("Markmap 渲染錯誤:", error);
                 markmapStatus.textContent = `❌ 渲染錯誤: ${error.message}`;
@@ -277,17 +238,14 @@
         // ====== 2. 檔案樹資料處理 (v1.1.1) ======
         async function fetchFileTree() {
             const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/git/trees/${BRANCH_NAME}?recursive=1`;
-            
             const response = await fetch(apiUrl);
             if (!response.ok) {
                 throw new Error(`無法從 GitHub API 取得檔案樹 (HTTP ${response.status})`);
             }
             const data = await response.json();
-            
             if (data.truncated) {
                 console.warn("GitHub API 回應被截斷，檔案列表可能不完整。");
             }
-            
             return data.tree
                 .filter(item => item.type === 'blob' && item.path.endsWith(MARKDOWN_EXTENSION))
                 .map(item => item.path);
@@ -295,15 +253,12 @@
 
         function buildTree(paths) {
             const root = { name: 'root', type: 'tree', children: [] };
-
             paths.forEach(path => {
                 const parts = path.split('/');
                 let currentNode = root;
-
                 parts.forEach((part, index) => {
                     let childNode = currentNode.children.find(n => n.name === part);
                     const isFile = index === parts.length - 1;
-
                     if (!childNode) {
                         if (isFile) {
                             childNode = { name: part, type: 'blob', path: path };
@@ -321,7 +276,6 @@
                     currentNode = childNode;
                 });
             });
-            
             const sortNodes = (nodes) => {
                 nodes.sort((a, b) => {
                     if (a.type !== b.type) {
@@ -335,7 +289,6 @@
                     }
                 });
             };
-            
             sortNodes(root.children);
             return root;
         }
@@ -344,42 +297,32 @@
         function createTreeViewNode(node) {
             const li = document.createElement('li');
             li.className = 'tree-node';
-
             if (node.type === 'tree') {
-                li.classList.add('collapsed'); 
-                
+                li.classList.add('collapsed');
                 const title = document.createElement('div');
                 title.className = 'tree-folder-title';
                 title.innerHTML = `<span class="icon">▶</span> <span>${node.name}</span>`;
-                
                 title.addEventListener('click', (e) => {
-                    e.stopPropagation(); 
+                    e.stopPropagation();
                     li.classList.toggle('collapsed');
                 });
-                
                 li.appendChild(title);
-
                 const childrenUl = document.createElement('ul');
                 node.children.forEach(child => {
                     childrenUl.appendChild(createTreeViewNode(child));
                 });
                 li.appendChild(childrenUl);
-
             } else if (node.type === 'blob') {
                 li.classList.add('tree-file-node');
-                
                 const link = document.createElement('a');
                 link.className = 'tree-file';
                 link.href = `#${node.path}`;
-                // v1.1.1 修正: 移除 📝 圖示
                 link.textContent = node.name; 
                 link.dataset.path = node.path; 
-                
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
                     renderMarkmap(node.path, link);
                 });
-                
                 li.appendChild(link);
                 fileLinksMap.set(node.path, link); 
             }
@@ -391,17 +334,14 @@
             if (!link) {
                 return false;
             }
-
             renderMarkmap(path, link);
-            
-            let currentNode = link.parentElement; 
+            let currentNode = link.parentElement;
             while (currentNode && currentNode.id !== 'file-tree-container') {
                 if (currentNode.tagName === 'LI' && currentNode.classList.contains('tree-node')) {
-                    currentNode.classList.remove('collapsed'); 
+                    currentNode.classList.remove('collapsed');
                 }
                 currentNode = currentNode.parentElement;
             }
-            
             link.scrollIntoView({ behavior: 'smooth', block: 'center' });
             return true;
         }
@@ -410,29 +350,21 @@
         async function initializeApp() {
             const container = document.getElementById('file-tree-container');
             const statusEl = document.getElementById('sidebar-status');
-
             try {
                 const paths = await fetchFileTree();
-                
                 if (paths.length === 0) {
                     throw new Error("儲存庫中找不到任何 .md 檔案。");
                 }
-                
                 const tree = buildTree(paths);
                 statusEl.remove();
-                
                 const rootUl = document.createElement('ul');
                 rootUl.style.paddingLeft = '0'; 
-                
                 tree.children.forEach(node => {
                     rootUl.appendChild(createTreeViewNode(node));
                 });
-                
                 container.appendChild(rootUl);
-
                 const hashPath = window.location.hash.substring(1);
                 let loaded = false;
-                
                 if (hashPath) {
                     loaded = findAndSelectFile(hashPath);
                 }
@@ -443,14 +375,13 @@
                     const firstFile = fileLinksMap.keys().next().value;
                     findAndSelectFile(firstFile);
                 }
-
             } catch (error) {
                 console.error("初始化應用程式錯誤:", error);
                 statusEl.textContent = `❌ 載入錯誤: ${error.message}`;
                 statusEl.className = 'sidebar-status error';
             }
         }
-        
+
         // ====== 5. 處理瀏覽器返回/前進按鈕 (v1.1.1) ======
         window.addEventListener('popstate', (event) => {
             let path;
@@ -459,7 +390,6 @@
             } else {
                 path = window.location.hash.substring(1);
             }
-
             if (path) {
                 findAndSelectFile(path);
             }
@@ -469,53 +399,43 @@
         function setupResizer() {
             const resizer = document.getElementById('resizer');
             if (!resizer) return;
-
             const sidebar = document.getElementById('sidebar');
             const container = document.querySelector('body');
-
             let isResizing = false;
-
             const resize = (e) => {
                 if (!isResizing) return;
-                // 使用 clientX 取得滑鼠位置
                 const clientX = e.touches ? e.touches[0].clientX : e.clientX;
                 let newWidth = clientX - container.offsetLeft;
-                
-                // 檢查最小和最大寬度
                 const minWidth = parseInt(getComputedStyle(sidebar).minWidth, 10);
                 const maxWidth = parseInt(getComputedStyle(sidebar).maxWidth, 10);
-
                 if (newWidth < minWidth) newWidth = minWidth;
                 if (newWidth > maxWidth) newWidth = maxWidth;
-
-                // 設定 CSS 變數
                 document.documentElement.style.setProperty('--sidebar-width', `${newWidth}px`);
             };
-
             const stopResize = () => {
                 isResizing = false;
                 resizer.classList.remove('resizing');
-                // 移除全域監聽器
                 window.removeEventListener('pointermove', resize);
                 window.removeEventListener('pointerup', stopResize);
             };
-
             resizer.addEventListener('pointerdown', (e) => {
                 isResizing = true;
                 resizer.classList.add('resizing');
-                e.preventDefault(); // 防止選取文字
-
-                // 新增全域監聽器
+                e.preventDefault();
                 window.addEventListener('pointermove', resize);
                 window.addEventListener('pointerup', stopResize);
             });
         }
 
         // v1.1.1 修正: 使用 'load' 事件代替 'DOMContentLoaded'
-        // 'load' 會等待所有外部資源 (包含 CDN 上的 JS) 都載入完成
-        window.addEventListener('load', () => {
-            initializeApp();
-            setupResizer(); // 設定寬度調整器
+        window.addEventListener('load', async () => {
+            try {
+                await waitForMarkmapLibrary();
+                initializeApp();
+                setupResizer();
+            } catch (error) {
+                document.getElementById('markmap-status').textContent = `❌ 錯誤: ${error.message}`;
+            }
         });
     </script>
 </body>
