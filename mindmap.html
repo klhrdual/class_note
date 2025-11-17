@@ -3,156 +3,37 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markmap 樹狀檢視器 v1.1.3</title>
+    <title>Markmap 樹狀檢視器 v1.1.4</title>
     <style>
-        :root {
-            --sidebar-width: 320px;
-        }
-        body {
-            margin: 0;
-            display: flex;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            color: #333;
-            background-color: #fff;
-            height: 100vh;
-            overflow: hidden;
-        }
-        #sidebar {
-            width: var(--sidebar-width);
-            min-width: 200px;
-            max-width: 80vw;
-            height: 100vh;
-            overflow-y: auto;
-            border-right: 1px solid #e0e0e0;
-            box-sizing: border-box;
-            background-color: #f9f9f9;
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
-            padding: 0;
-            user-select: none;
-        }
-        #sidebar-header {
-            padding: 20px 25px;
-            margin: 0;
-            color: #1a73e8;
-            font-size: 1.25rem;
-            border-bottom: 2px solid #1a73e8;
-            background-color: #fff;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-        #file-tree-container {
-            padding: 10px 20px;
-        }
-        .tree-node {
-            list-style-type: none;
-            margin: 2px 0;
-        }
-        .tree-node ul {
-            padding-left: 20px;
-            margin: 5px 0 5px 12px;
-            border-left: 1px dashed #ccc;
-        }
-        .tree-folder-title {
-            cursor: pointer;
-            padding: 5px 8px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            font-weight: 500;
-            transition: background-color 0.2s ease;
-        }
-        .tree-folder-title:hover {
-            background-color: #e0e7ff;
-        }
-        .tree-folder-title .icon {
-            display: inline-block;
-            width: 16px;
-            text-align: center;
-            margin-right: 5px;
-            transition: transform 0.1s ease-in-out;
-        }
-        .tree-node.collapsed > .tree-folder-title .icon {
-            transform: rotate(-90deg);
-        }
-        .tree-node.collapsed > ul {
-            display: none;
-        }
-        .tree-file {
-            display: block;
-            padding: 5px 8px 5px 30px; 
-            text-decoration: none;
-            color: #444;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-            font-size: 0.95rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            user-select: text; 
-        }
-        .tree-file:hover {
-            background-color: #e0e7ff;
-            color: #1a73e8;
-        }
-        .tree-file.active {
-            font-weight: bold;
-            background-color: #1a73e8;
-            color: #ffffff;
-            border-color: #1a73e8;
-        }
-        #resizer {
-            width: 5px;
-            height: 100vh;
-            background: #f1f1f1;
-            cursor: col-resize;
-            transition: background-color 0.2s ease;
-        }
-        #resizer:hover,
-        #resizer.resizing {
-            background: #1a73e8;
-        }
-        #markmap-container {
-            flex-grow: 1;
-            height: 100vh;
-            overflow: hidden;
-            position: relative;
-            width: 0;
-        }
-        #markmap {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-        .status-message {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 1.5rem;
-            color: #777;
-            padding: 20px;
-            background-color: rgba(255, 255, 255, 0.8);
-            border-radius: 8px;
-        }
-        .status-message.error {
-            color: #D32F2F;
-        }
-        .sidebar-status {
-            padding: 20px;
-            font-size: 1rem;
-            color: #777;
-        }
-        .sidebar-status.error {
-             color: #D32F2F;
-        }
+        :root { --sidebar-width: 320px; }
+        body { margin: 0; display: flex; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #333; background-color: #fff; height: 100vh; overflow: hidden; }
+        #sidebar { width: var(--sidebar-width); min-width: 200px; max-width: 80vw; height: 100vh; overflow-y: auto; border-right: 1px solid #e0e0e0; box-sizing: border-box; background-color: #f9f9f9; box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05); padding: 0; user-select: none; }
+        #sidebar-header { padding: 20px 25px; margin: 0; color: #1a73e8; font-size: 1.25rem; border-bottom: 2px solid #1a73e8; background-color: #fff; position: sticky; top: 0; z-index: 10; }
+        #file-tree-container { padding: 10px 20px; }
+        .tree-node { list-style-type: none; margin: 2px 0; }
+        .tree-node ul { padding-left: 20px; margin: 5px 0 5px 12px; border-left: 1px dashed #ccc; }
+        .tree-folder-title { cursor: pointer; padding: 5px 8px; border-radius: 6px; display: flex; align-items: center; font-weight: 500; transition: background-color 0.2s ease; }
+        .tree-folder-title:hover { background-color: #e0e7ff; }
+        .tree-folder-title .icon { display: inline-block; width: 16px; text-align: center; margin-right: 5px; transition: transform 0.1s ease-in-out; }
+        .tree-node.collapsed > .tree-folder-title .icon { transform: rotate(-90deg); }
+        .tree-node.collapsed > ul { display: none; }
+        .tree-file { display: block; padding: 5px 8px 5px 30px; text-decoration: none; color: #444; border-radius: 6px; transition: all 0.2s ease; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: text; }
+        .tree-file:hover { background-color: #e0e7ff; color: #1a73e8; }
+        .tree-file.active { font-weight: bold; background-color: #1a73e8; color: #ffffff; border-color: #1a73e8; }
+        #resizer { width: 5px; height: 100vh; background: #f1f1f1; cursor: col-resize; transition: background-color 0.2s ease; }
+        #resizer:hover, #resizer.resizing { background: #1a73e8; }
+        #markmap-container { flex-grow: 1; height: 100vh; overflow: hidden; position: relative; width: 0; }
+        #markmap { display: block; width: 100%; height: 100%; }
+        .status-message { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5rem; color: #777; padding: 20px; background-color: rgba(255, 255, 255, 0.8); border-radius: 8px; }
+        .status-message.error { color: #D32F2F; }
+        .sidebar-status { padding: 20px; font-size: 1rem; color: #777; }
+        .sidebar-status.error { color: #D32F2F; }
     </style>
 </head>
 <body>
     <div id="sidebar">
         <h3 id="sidebar-header">📂 筆記檔案列表</h3>
         <div id="file-tree-container">
-            <!-- 檔案樹將在這裡動態生成 -->
             <div class="sidebar-status" id="sidebar-status">正在載入...</div>
         </div>
     </div>
@@ -161,46 +42,81 @@
         <svg id="markmap"></svg>
         <div id="markmap-status" class="status-message">請從左側選擇一個筆記檔案</div>
     </div>
-    <!-- v1.1.3: 函式庫皆加 defer，提高穩定性 -->
+    <!-- Robust: add "defer" so scripts load after DOM -->
     <script src="https://cdn.jsdelivr.net/npm/d3@7" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.17" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/markmap-view@0.17" defer></script>
     <script>
+        // ---- Config ----
         const GITHUB_USERNAME = 'klhrd';      
-        const REPO_NAME = 'class_note';       
-        const BRANCH_NAME = 'main'; // 或是 'master'
+        const REPO_NAME = 'class_note';
+        const BRANCH_NAME = 'main';
         const MARKDOWN_EXTENSION = '.md';
         const fileLinksMap = new Map();
         let activeLink = null;
         let mm;
+        let markmapReady = false;
+        let pendingMarkmapRender = [];
 
+        function checkMarkmapReady() {
+            return (typeof window.markmap?.transform === 'function') &&
+                (typeof window.markmap?.Markmap?.create === 'function');
+        }
+
+        // Run this once Markmap is loaded
+        function onMarkmapLibraryReady() {
+            markmapReady = true;
+            // Process any queued render requests
+            while (pendingMarkmapRender.length > 0) {
+                const [filePath, sourceLink] = pendingMarkmapRender.shift();
+                renderMarkmap(filePath, sourceLink);
+            }
+        }
+
+        // Wait for Markmap scripts (with fallback)
+        function waitForMarkmapLibAndRun() {
+            if (checkMarkmapReady()) {
+                onMarkmapLibraryReady();
+            } else {
+                // Retry with requestIdleCallback for low priority
+                window.requestIdleCallback(() => {
+                    if (checkMarkmapReady()) {
+                        onMarkmapLibraryReady();
+                    } else {
+                        setTimeout(waitForMarkmapLibAndRun, 150);
+                    }
+                }, {timeout:500});
+            }
+        }
+
+        // ===== Markmap Rendering, now gated by library readiness =====
         async function renderMarkmap(filePath, sourceLink) {
             const markmapStatus = document.getElementById('markmap-status');
             const markmapEl = document.getElementById('markmap');
+            if (!markmapReady) {
+                pendingMarkmapRender.push([filePath, sourceLink]);
+                markmapStatus.textContent = "正在等待 Markmap 函式庫載入...";
+                markmapStatus.className = "status-message";
+                markmapStatus.style.display = "block";
+                return;
+            }
             if (mm) { mm.destroy(); mm = null; }
-            markmapEl.innerHTML = ''; 
+            markmapEl.innerHTML = '';
             markmapStatus.textContent = `正在載入 ${filePath} 的內容...`;
-            markmapStatus.className = 'status-message'; 
+            markmapStatus.className = 'status-message';
             markmapStatus.style.display = 'block';
             try {
-                if (typeof window.markmap?.transform !== 'function' || typeof window.markmap?.Markmap?.create !== 'function') {
-                    throw new Error("Markmap 函式庫尚未載入完成。");
-                }
                 const rawFileUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH_NAME}/${filePath}`;
                 const response = await fetch(rawFileUrl);
-                if (!response.ok) {
-                    throw new Error(`無法載入檔案 (HTTP ${response.status})`);
-                }
+                if (!response.ok) throw new Error(`無法載入檔案 (HTTP ${response.status})`);
                 const markdownContent = await response.text();
-                const { transform, Markmap } = window.markmap; 
-                if (!markdownContent.trim()) {
-                    throw new Error("檔案內容為空。");
-                }
+                const { transform, Markmap } = window.markmap;
+                if (!markdownContent.trim()) throw new Error("檔案內容為空。");
                 const { root, features } = transform(markdownContent);
                 markmapStatus.style.display = 'none';
                 mm = Markmap.create(markmapEl, null, root); 
                 if (sourceLink) {
-                    if (activeLink) { activeLink.classList.remove('active'); }
+                    if (activeLink) activeLink.classList.remove('active');
                     sourceLink.classList.add('active');
                     activeLink = sourceLink;
                     history.pushState({ path: filePath }, null, `#${filePath}`);
@@ -212,28 +128,24 @@
             }
         }
 
-        // v1.1.3: 檔案列表載入失敗時 console 印出錯誤
+        // ===== File tree logic =====
         async function fetchFileTree() {
             const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/git/trees/${BRANCH_NAME}?recursive=1`;
             try {
                 const response = await fetch(apiUrl);
-                if (!response.ok) {
+                if (!response.ok)
                     throw new Error(`無法從 GitHub API 取得檔案樹 (HTTP ${response.status})`);
-                }
                 const data = await response.json();
-                if (data.truncated) {
+                if (data.truncated)
                     console.warn("GitHub API 回應被截斷，檔案列表可能不完整。");
-                }
                 return data.tree
                     .filter(item => item.type === 'blob' && item.path.endsWith(MARKDOWN_EXTENSION))
                     .map(item => item.path);
             } catch (err) {
-                // 新增: 印出 fetchFileTree 失敗原因到 console
                 console.error('fetchFileTree 錯誤:', err);
                 throw err;
             }
         }
-
         function buildTree(paths) {
             const root = { name: 'root', type: 'tree', children: [] };
             paths.forEach(path => {
@@ -247,12 +159,7 @@
                             childNode = { name: part, type: 'blob', path: path };
                             currentNode.children.push(childNode);
                         } else {
-                            childNode = {
-                                name: part,
-                                type: 'tree',
-                                path: parts.slice(0, index + 1).join('/'),
-                                children: []
-                            };
+                            childNode = { name: part, type: 'tree', path: parts.slice(0, index + 1).join('/'), children: [] };
                             currentNode.children.push(childNode);
                         }
                     }
@@ -261,31 +168,25 @@
             });
             const sortNodes = (nodes) => {
                 nodes.sort((a, b) => {
-                    if (a.type !== b.type) {
-                        return a.type === 'tree' ? -1 : 1; 
-                    }
-                    return a.name.localeCompare(b.name, 'zh-TW'); 
+                    if (a.type !== b.type)
+                        return a.type === 'tree' ? -1 : 1;
+                    return a.name.localeCompare(b.name, 'zh-TW');
                 });
-                nodes.forEach(node => {
-                    if (node.type === 'tree') {
-                        sortNodes(node.children);
-                    }
-                });
+                nodes.forEach(node => { if (node.type === 'tree') sortNodes(node.children); });
             };
             sortNodes(root.children);
             return root;
         }
-
         function createTreeViewNode(node) {
             const li = document.createElement('li');
             li.className = 'tree-node';
             if (node.type === 'tree') {
-                li.classList.add('collapsed'); 
+                li.classList.add('collapsed');
                 const title = document.createElement('div');
                 title.className = 'tree-folder-title';
                 title.innerHTML = `<span class="icon">▶</span> <span>${node.name}</span>`;
                 title.addEventListener('click', (e) => {
-                    e.stopPropagation(); 
+                    e.stopPropagation();
                     li.classList.toggle('collapsed');
                 });
                 li.appendChild(title);
@@ -299,28 +200,25 @@
                 const link = document.createElement('a');
                 link.className = 'tree-file';
                 link.href = `#${node.path}`;
-                link.textContent = node.name; 
-                link.dataset.path = node.path; 
+                link.textContent = node.name;
+                link.dataset.path = node.path;
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
                     renderMarkmap(node.path, link);
                 });
                 li.appendChild(link);
-                fileLinksMap.set(node.path, link); 
+                fileLinksMap.set(node.path, link);
             }
             return li;
         }
-
         function findAndSelectFile(path) {
             const link = fileLinksMap.get(path);
-            if (!link) {
-                return false;
-            }
+            if (!link) return false;
             renderMarkmap(path, link);
-            let currentNode = link.parentElement; 
+            let currentNode = link.parentElement;
             while (currentNode && currentNode.id !== 'file-tree-container') {
                 if (currentNode.tagName === 'LI' && currentNode.classList.contains('tree-node')) {
-                    currentNode.classList.remove('collapsed'); 
+                    currentNode.classList.remove('collapsed');
                 }
                 currentNode = currentNode.parentElement;
             }
@@ -333,49 +231,32 @@
             const statusEl = document.getElementById('sidebar-status');
             try {
                 const paths = await fetchFileTree();
-                if (paths.length === 0) {
-                    throw new Error("儲存庫中找不到任何 .md 檔案。");
-                }
+                if (paths.length === 0) throw new Error("儲存庫中找不到任何 .md 檔案。");
                 const tree = buildTree(paths);
                 statusEl.remove();
                 const rootUl = document.createElement('ul');
-                rootUl.style.paddingLeft = '0'; 
-                tree.children.forEach(node => {
-                    rootUl.appendChild(createTreeViewNode(node));
-                });
+                rootUl.style.paddingLeft = '0';
+                tree.children.forEach(node => rootUl.appendChild(createTreeViewNode(node)));
                 container.appendChild(rootUl);
                 const hashPath = window.location.hash.substring(1);
                 let loaded = false;
-                if (hashPath) {
-                    loaded = findAndSelectFile(hashPath);
-                }
-                if (!loaded) {
-                    loaded = findAndSelectFile('README.md');
-                }
+                if (hashPath) loaded = findAndSelectFile(hashPath);
+                if (!loaded) loaded = findAndSelectFile('README.md');
                 if (!loaded && fileLinksMap.size > 0) {
                     const firstFile = fileLinksMap.keys().next().value;
                     findAndSelectFile(firstFile);
                 }
             } catch (error) {
-                // v1.1.3: 印出錯誤說明至 console
                 console.error("初始化應用程式錯誤:", error);
                 statusEl.textContent = `❌ 載入錯誤: ${error.message}`;
                 statusEl.className = 'sidebar-status error';
             }
         }
-        
-        window.addEventListener('popstate', (event) => {
-            let path;
-            if (event.state && event.state.path) {
-                path = event.state.path;
-            } else {
-                path = window.location.hash.substring(1);
-            }
-            if (path) {
-                findAndSelectFile(path);
-            }
-        });
 
+        window.addEventListener('popstate', (event) => {
+            let path = event.state && event.state.path ? event.state.path : window.location.hash.substring(1);
+            if (path) findAndSelectFile(path);
+        });
         function setupResizer() {
             const resizer = document.getElementById('resizer');
             if (!resizer) return;
@@ -410,6 +291,7 @@
         window.addEventListener('load', () => {
             initializeApp();
             setupResizer();
+            waitForMarkmapLibAndRun();
         });
     </script>
 </body>
