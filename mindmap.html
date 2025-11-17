@@ -3,109 +3,177 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markmap 動態筆記瀏覽器</title>
+    <title>Markmap 樹狀檢視器 v1.1.0</title>
     <style>
         /* 基礎樣式和佈局 */
-        body { 
-            margin: 0; 
-            display: flex; 
+        body {
+            margin: 0;
+            display: flex;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             color: #333;
             background-color: #fff;
-        }
-        /* 側邊欄樣式 */
-        #sidebar {
-            width: 280px; /* 側邊欄寬度 */
-            min-width: 280px;
             height: 100vh;
-            overflow-y: auto;
-            border-right: 1px solid #e0e0e0;
-            padding: 20px 15px;
-            box-sizing: border-box;
-            background-color: #f7f7f7;
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+            overflow: hidden; /* 防止
+            body 
+            滾動 
+            */
         }
-        #sidebar h3 {
-            margin-top: 0;
-            margin-bottom: 15px;
+
+        /* --- 側邊欄樣式 (可滾動) --- */
+        #sidebar {
+            width: 320px; /* 側邊欄寬度 */
+            min-width: 300px;
+            height: 100vh;
+            overflow-y: auto; /* 僅側邊欄可滾動 */
+            border-right: 1px solid #e0e0e0;
+            box-sizing: border-box;
+            background-color: #f9f9f9;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+            padding: 0;
+        }
+
+        #sidebar-header {
+            padding: 20px 25px;
+            margin: 0;
             color: #1a73e8;
             font-size: 1.25rem;
             border-bottom: 2px solid #1a73e8;
-            padding-bottom: 5px;
-        }
-        /* 檔案連結樣式 */
-        .file-link {
-            display: block;
-            padding: 8px 10px;
-            margin-bottom: 5px;
-            cursor: pointer;
-            border-radius: 6px;
-            text-decoration: none;
-            color: #333;
             background-color: #fff;
-            transition: all 0.2s ease-in-out;
-            font-size: 0.9rem;
-            border: 1px solid #eee;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        #file-tree-container {
+            padding: 10px 20px;
+        }
+
+        /* --- 樹狀檢視 (Tree View) 樣式 --- */
+        .tree-node {
+            list-style-type: none;
+            margin: 2px 0;
+        }
+
+        /* 巢狀的 UL，增加左側縮排 */
+        .tree-node ul {
+            padding-left: 20px;
+            margin: 5px 0 5px 12px;
+            border-left: 1px dashed #ccc;
+        }
+
+        /* 資料夾 (可點擊) */
+        .tree-folder-title {
+            cursor: pointer;
+            padding: 5px 8px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+        }
+
+        .tree-folder-title:hover {
+            background-color: #e0e7ff;
+        }
+
+        /* 資料夾圖示 (用於展開/收闔) */
+        .tree-folder-title .icon {
+            display: inline-block;
+            width: 16px;
+            text-align: center;
+            margin-right: 5px;
+            transition: transform 0.1s ease-in-out;
+        }
+
+        /* 資料夾收闔時的圖示 */
+        .tree-node.collapsed > .tree-folder-title .icon {
+            transform: rotate(-90deg);
+        }
+
+        /* 資料夾的子項目 (預設隱藏) */
+        .tree-node.collapsed > ul {
+            display: none;
+        }
+
+        /* 檔案 (可點擊) */
+        .tree-file {
+            display: block;
+            padding: 5px 8px 5px 30px; /* 縮排檔案使其對齊 */
+            text-decoration: none;
+            color: #444;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            font-size: 0.95rem;
+            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            white-space: nowrap;
         }
-        .file-link.dir-level-1 {
-            padding-left: 20px; /* 子目錄檔案增加縮排 */
-        }
-        .file-link.dir-level-2 {
-            padding-left: 30px; /* 更深的子目錄增加縮排 */
-        }
-        .file-link:hover {
+
+        .tree-file:hover {
             background-color: #e0e7ff;
             color: #1a73e8;
-            border-color: #1a73e8;
         }
-        .file-link.active {
+
+        /* 當前選中的檔案 */
+        .tree-file.active {
             font-weight: bold;
             background-color: #1a73e8;
             color: #ffffff;
             border-color: #1a73e8;
         }
 
-        /* Markmap 容器樣式 */
+        /* --- Markmap 容器樣式 --- */
         #markmap-container {
-            flex-grow: 1; 
+            flex-grow: 1;
             height: 100vh;
             overflow: hidden;
             position: relative;
         }
+
         #markmap {
             display: block;
             width: 100%;
             height: 100%;
         }
-        .loading-text {
+
+        /* 載入和錯誤提示 */
+        .status-message {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             font-size: 1.5rem;
             color: #777;
-        }
-        .error-message {
-            color: red;
             padding: 20px;
-            font-size: 1.1rem;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
         }
+        .status-message.error {
+            color: #D32F2F; /* 紅色 */
+        }
+        
+        .sidebar-status {
+            padding: 20px;
+            font-size: 1rem;
+            color: #777;
+        }
+        .sidebar-status.error {
+             color: #D32F2F;
+        }
+
     </style>
 </head>
 <body>
     <div id="sidebar">
-        <h3>📂 筆記檔案列表</h3>
-        <div id="file-list">
-            <!-- 檔案連結會在這裡動態生成 -->
-            <p class="loading-text" style="font-size: 1rem;">正在載入...</p>
+        <h3 id="sidebar-header">📂 筆記檔案列表</h3>
+        <div id="file-tree-container">
+            <!-- 檔案樹將在這裡動態生成 -->
+            <div class="sidebar-status" id="sidebar-status">正在載入...</div>
         </div>
     </div>
     <div id="markmap-container">
         <svg id="markmap"></svg>
+        <div id="markmap-status" class="status-message">請從左側選擇一個筆記檔案</div>
     </div>
     
     <!-- 引入 Markmap 必要函式庫 (透過 CDN) -->
@@ -115,154 +183,317 @@
 
     <script>
         // =================================================================
-        //                 🔔 GitHub 資訊 (已從您的輸入中提取) 🔔
+        //                 🔔 GitHub 資訊 (請修改這裡) 🔔
         // =================================================================
-        const GITHUB_USERNAME = 'klhrd';    
-        const REPO_NAME = 'class_note';         
-        const TARGET_PATH = '';                     
+        const GITHUB_USERNAME = 'klhrd';      
+        const REPO_NAME = 'class_note';       
+        const BRANCH_NAME = 'main'; // 或是 'master'
         // =================================================================
         
         const MARKDOWN_EXTENSION = '.md';
-
+        
         // Map 用來儲存檔案路徑到 DOM 元素的映射，方便樣式控制
-        let fileLinksMap = new Map(); 
+        const fileLinksMap = new Map();
+        // 儲存當前活動的連結
+        let activeLink = null;
+        
+        // Markmap 實例
+        let mm; 
 
-        // ====== 1. Markmap 渲染核心函式 (功能不變) ======
+        // ====== 1. Markmap 渲染核心函式 (v1.1.0) ======
+        /**
+         * 載入 Markdown 內容並渲染 Markmap。
+         * @param {string} filePath - GitHub 上的檔案路徑 (e.g., 'chinese/lesson1.md')
+         * @param {HTMLElement} sourceLink - 觸發渲染的檔案連結 DOM 元素
+         */
         async function renderMarkmap(filePath, sourceLink) {
+            const markmapStatus = document.getElementById('markmap-status');
             const markmapEl = document.getElementById('markmap');
-            markmapEl.innerHTML = `<div class="loading-text">正在載入 ${filePath} 的內容...</div>`;
             
+            // 清空舊的 Markmap (如果存在)
+            if (mm) {
+                mm.destroy();
+                mm = null;
+            }
+            markmapEl.innerHTML = ''; // 清空 SVG 內容
+            markmapStatus.textContent = `正在載入 ${filePath} 的內容...`;
+            markmapStatus.className = 'status-message'; // 重設樣式
+            markmapStatus.style.display = 'block';
+
             try {
-                const response = await fetch(filePath);
+                // 使用 GitHub Raw 內容的 URL 格式
+                const rawFileUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH_NAME}/${filePath}`;
+                
+                const response = await fetch(rawFileUrl);
                 if (!response.ok) {
-                    throw new Error(`無法載入檔案: ${filePath} (${response.status})`);
+                    throw new Error(`無法載入檔案 (HTTP ${response.status})`);
                 }
                 const markdownContent = await response.text();
                 
                 const { transform } = window.markmap;
-                const { root } = transform(markdownContent);
+                // 檢查 Markdown 內容是否為空
+                if (!markdownContent.trim()) {
+                    throw new Error("檔案內容為空。");
+                }
                 
-                markmapEl.innerHTML = '';
-                window.markmap.Markmap.create(markmapEl, null, root);
+                const { root, features } = transform(markdownContent);
+                
+                // 成功載入，隱藏狀態提示
+                markmapStatus.style.display = 'none';
+                
+                // 建立新的 Markmap 實例
+                mm = window.markmap.Markmap.create(markmapEl, null, root);
                 
                 // 處理 Hash 與樣式更新
                 if (sourceLink) {
-                    document.querySelectorAll('.file-link').forEach(l => l.classList.remove('active'));
+                    if (activeLink) {
+                        activeLink.classList.remove('active');
+                    }
                     sourceLink.classList.add('active');
-                    history.pushState(null, null, `#${filePath}`);
+                    activeLink = sourceLink;
+                    
+                    // 透過 history API 靜默更新 URL Hash
+                    history.pushState({ path: filePath }, null, `#${filePath}`);
                 }
 
             } catch (error) {
                 console.error("Markmap 渲染錯誤:", error);
-                markmapEl.innerHTML = `<div class="error-message">錯誤：無法渲染 Markmap。請檢查檔案路徑或內容。${error.message}</div>`;
+                markmapStatus.textContent = `❌ 渲染錯誤: ${error.message}`;
+                markmapStatus.className = 'status-message error';
             }
         }
 
-        // ====== 2. 遞迴取得 Markdown 檔案列表 (新增) ======
-        async function getMarkdownFiles(path) {
-            const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${path}`;
+        // ====== 2. 檔案樹資料處理 (v1.1.0) ======
+        /**
+         * 透過 GitHub Git Trees API 抓取儲存庫的完整檔案結構。
+         */
+        async function fetchFileTree() {
+            // 使用 Git Trees API 加上 ?recursive=1 可以一次抓取所有檔案
+            const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/git/trees/${BRANCH_NAME}?recursive=1`;
             
-            // 透過 GitHub API 取得目錄內容
-            const response = await fetch(url);
-            
+            const response = await fetch(apiUrl);
             if (!response.ok) {
-                // 如果 API 請求失敗，可能是路徑無效，直接返回空陣列
-                console.warn(`Skipping path ${path} due_to_API_error: ${response.status}`);
-                return [];
+                throw new Error(`無法從 GitHub API 取得檔案樹 (HTTP ${response.status})`);
+            }
+            const data = await response.json();
+            
+            if (data.truncated) {
+                console.warn("GitHub API 回應被截斷，檔案列表可能不完整。");
             }
             
-            const contents = await response.json();
-            let files = [];
-            
-            for (const item of contents) {
-                if (item.type === 'file' && item.name.endsWith(MARKDOWN_EXTENSION)) {
-                    // 收集 Markdown 檔案
-                    files.push({
-                        name: item.name,
-                        path: item.path, // 完整的檔案路徑 (例如: 'chinese/lesson1.md')
-                    });
-                } else if (item.type === 'dir') {
-                    // 遞迴呼叫子資料夾
-                    const subFiles = await getMarkdownFiles(item.path);
-                    files = files.concat(subFiles);
-                }
-            }
-            return files;
+            // 我們只關心 .md 檔案
+            return data.tree
+                .filter(item => item.type === 'blob' && item.path.endsWith(MARKDOWN_EXTENSION))
+                .map(item => item.path);
         }
 
-        // ====== 3. 初始化應用程式 ======
-        async function initializeApp() {
-            const fileListContainer = document.getElementById('file-list');
-            fileListContainer.innerHTML = '<p class="loading-text" style="font-size: 1rem;">正在從 GitHub 載入檔案列表...</p>';
+        /**
+         * 將扁平的檔案路徑列表轉換為巢狀的樹狀結構。
+         * @param {string[]} paths - 檔案路徑列表
+         * @returns {object} - 樹狀結構的根節點
+         */
+        function buildTree(paths) {
+            const root = { name: 'root', type: 'tree', children: [] };
 
-            try {
-                // 遞迴取得所有 Markdown 檔案
-                const markdownFiles = await getMarkdownFiles(TARGET_PATH);
+            paths.forEach(path => {
+                const parts = path.split('/');
+                let currentNode = root;
 
-                if (markdownFiles.length === 0) {
-                    fileListContainer.innerHTML = '<p class="error-message">找不到任何 Markdown 檔案 (.md)。</p>';
-                    return;
-                }
-
-                fileListContainer.innerHTML = ''; // 清空載入提示
-                let hashPath = window.location.hash.substring(1); 
-                let defaultFile = null;
-
-                // 建立檔案連結清單
-                markdownFiles.forEach(file => {
-                    const link = document.createElement('a');
-                    // 顯示完整的檔案路徑，讓使用者知道檔案在哪個資料夾
-                    link.textContent = file.path; 
-                    link.href = `#${file.path}`; 
-                    link.classList.add('file-link');
+                parts.forEach((part, index) => {
+                    let childNode = currentNode.children.find(n => n.name === part);
                     
-                    // 根據路徑深度增加縮排樣式 (例如 'chinese/lesson1.md' 有兩層)
-                    const pathDepth = file.path.split('/').length - 1;
-                    if (pathDepth > 0) {
-                        // 使用 dir-level-X 樣式實現縮排
-                        link.classList.add(`dir-level-${Math.min(pathDepth, 2)}`); 
+                    const isFile = index === parts.length - 1;
+
+                    if (!childNode) {
+                        if (isFile) {
+                            childNode = {
+                                name: part,
+                                type: 'blob',
+                                path: path
+                            };
+                            currentNode.children.push(childNode);
+                        } else {
+                            // 建立一個資料夾節點
+                            childNode = {
+                                name: part,
+                                type: 'tree',
+                                path: parts.slice(0, index + 1).join('/'),
+                                children: []
+                            };
+                            currentNode.children.push(childNode);
+                        }
                     }
-                    
-                    fileLinksMap.set(file.path, link);
-
-                    link.addEventListener('click', (e) => {
-                        e.preventDefault(); 
-                        renderMarkmap(file.path, link);
-                    });
-
-                    fileListContainer.appendChild(link);
-                    
-                    // 判斷初始載入的檔案
-                    if (file.path === hashPath) {
-                        defaultFile = { path: file.path, link: link };
-                    } else if (!defaultFile) {
-                        defaultFile = { path: file.path, link: link };
+                    currentNode = childNode;
+                });
+            });
+            
+            // 排序：資料夾在檔案之前，然後按名稱排序
+            const sortNodes = (nodes) => {
+                nodes.sort((a, b) => {
+                    if (a.type !== b.type) {
+                        return a.type === 'tree' ? -1 : 1; // 資料夾優先
+                    }
+                    return a.name.localeCompare(b.name, 'zh-TW'); // 按名稱排序
+                });
+                nodes.forEach(node => {
+                    if (node.type === 'tree') {
+                        sortNodes(node.children);
                     }
                 });
+            };
+            
+            sortNodes(root.children);
+            return root;
+        }
 
-                // 初始載入：渲染第一個檔案或 Hash 指定的檔案
-                if (defaultFile) {
-                    renderMarkmap(defaultFile.path, defaultFile.path === hashPath ? null : defaultFile.link);
-                    if (defaultFile.link) defaultFile.link.classList.add('active'); 
+        // ====== 3. 渲染側邊欄 (Tree View) (v1.1.0) ======
+        /**
+         * 遞迴建立檔案樹的 DOM 結構。
+         * @param {object} node - 當前節點 (資料夾或檔案)
+         * @returns {HTMLLIElement} - 建立的 list item 元素
+         */
+        function createTreeViewNode(node) {
+            const li = document.createElement('li');
+            li.className = 'tree-node';
+
+            if (node.type === 'tree') {
+                // --- 這是資料夾 ---
+                li.classList.add('collapsed'); // 預設收闔
+                
+                const title = document.createElement('div');
+                title.className = 'tree-folder-title';
+                title.innerHTML = `<span class="icon">▶</span> <span>${node.name}</span>`;
+                
+                // 點擊資料夾標題時，切換收闔狀態
+                title.addEventListener('click', (e) => {
+                    e.stopPropagation(); // 防止觸發上層
+                    li.classList.toggle('collapsed');
+                });
+                
+                li.appendChild(title);
+
+                const childrenUl = document.createElement('ul');
+                node.children.forEach(child => {
+                    childrenUl.appendChild(createTreeViewNode(child));
+                });
+                li.appendChild(childrenUl);
+
+            } else if (node.type === 'blob') {
+                // --- 這是檔案 ---
+                li.classList.add('tree-file-node');
+                
+                const link = document.createElement('a');
+                link.className = 'tree-file';
+                link.href = `#${node.path}`;
+                link.textContent = `📝 ${node.name}`;
+                link.dataset.path = node.path; // 儲存路徑
+                
+                // 點擊檔案連結時，渲染 Markmap
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    renderMarkmap(node.path, link);
+                });
+                
+                li.appendChild(link);
+                fileLinksMap.set(node.path, link); // 儲存到 Map 中
+            }
+            return li;
+        }
+
+        /**
+         * 根據路徑尋找檔案連結，並自動展開其所有父資料夾。
+         * @param {string} path - 檔案路徑
+         * @returns {boolean} - 是否找到並選中
+         */
+        function findAndSelectFile(path) {
+            const link = fileLinksMap.get(path);
+            if (!link) {
+                return false;
+            }
+
+            // 觸發渲染
+            renderMarkmap(path, link);
+            
+            // 向上遍歷 DOM，展開所有父資料夾
+            let currentNode = link.parentElement; // 從 <li> 開始
+            while (currentNode && currentNode.id !== 'file-tree-container') {
+                if (currentNode.tagName === 'LI' && currentNode.classList.contains('tree-node')) {
+                    currentNode.classList.remove('collapsed'); // 展開
+                }
+                currentNode = currentNode.parentElement;
+            }
+            
+            // 捲動到檢視範圍內
+            link.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return true;
+        }
+
+        // ====== 4. 初始化應用程式 (v1.1.0) ======
+        async function initializeApp() {
+            const container = document.getElementById('file-tree-container');
+            const statusEl = document.getElementById('sidebar-status');
+
+            try {
+                const paths = await fetchFileTree();
+                
+                if (paths.length === 0) {
+                    throw new Error("儲存庫中找不到任何 .md 檔案。");
+                }
+                
+                const tree = buildTree(paths);
+
+                // 清空載入提示
+                statusEl.remove();
+                
+                // 建立根 UL
+                const rootUl = document.createElement('ul');
+                rootUl.style.paddingLeft = '0'; // 根節點不需要縮排
+                
+                tree.children.forEach(node => {
+                    rootUl.appendChild(createTreeViewNode(node));
+                });
+                
+                container.appendChild(rootUl);
+
+                // 處理初始載入 (檢查 URL Hash)
+                const hashPath = window.location.hash.substring(1);
+                let loaded = false;
+                
+                if (hashPath) {
+                    loaded = findAndSelectFile(hashPath);
+                }
+
+                // 如果 Hash 無效或不存在，嘗試載入根目錄的 README.md
+                if (!loaded) {
+                    loaded = findAndSelectFile('README.md');
+                }
+                
+                // 如果還是沒載入，載入第一個找到的檔案
+                if (!loaded && fileLinksMap.size > 0) {
+                    const firstFile = fileLinksMap.keys().next().value;
+                    findAndSelectFile(firstFile);
                 }
 
             } catch (error) {
                 console.error("初始化應用程式錯誤:", error);
-                fileListContainer.innerHTML = `<p class="error-message">載入錯誤: ${error.message}</p>`;
+                statusEl.textContent = `❌ 載入錯誤: ${error.message}`;
+                statusEl.className = 'sidebar-status error';
             }
         }
         
-        // ====== 4. 處理瀏覽器返回/前進按鈕 (popstate) (功能不變) ======
-        window.addEventListener('popstate', () => {
-            const hashPath = window.location.hash.substring(1);
-            if (hashPath && fileLinksMap.has(hashPath)) {
-                renderMarkmap(hashPath, fileLinksMap.get(hashPath));
-            } else if (fileLinksMap.size > 0) {
-                const firstFile = fileLinksMap.keys().next().value;
-                renderMarkmap(firstFile, fileLinksMap.get(firstFile));
+        // ====== 5. 處理瀏覽器返回/前進按鈕 (popstate) ======
+        window.addEventListener('popstate', (event) => {
+            let path;
+            if (event.state && event.state.path) {
+                path = event.state.path;
+            } else {
+                path = window.location.hash.substring(1);
+            }
+
+            if (path) {
+                findAndSelectFile(path);
             }
         });
-
 
         // 頁面載入後，開始執行
         document.addEventListener('DOMContentLoaded', initializeApp);
