@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markmap 樹狀檢視器 v1.1.6</title>
+    <title>Markmap 樹狀檢視器 v1.1.7</title>
     <style>
         :root {
             --sidebar-width: 320px;
@@ -19,7 +19,6 @@
             background-color: #fff;
             height: 100vh;
             overflow: hidden; 
-            /* v1.1.6: 增加 transition 讓側邊欄滑動更流暢 */
             transition: margin-left 0.3s ease; 
         }
 
@@ -36,7 +35,6 @@
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
             padding: 0;
             user-select: none;
-            /* v1.1.6: 增加 transition */
             transition: margin-left 0.3s ease;
             flex-shrink: 0; /* 防止側邊欄被壓縮 */
         }
@@ -141,8 +139,8 @@
             height: 100vh;
             background: #f1f1f1;
             cursor: col-resize;
-            transition: background-color 0.2s ease, margin-left 0.3s ease; /* v1.1.6: 增加 transition */
-            flex-shrink: 0; /* 防止被壓縮 */
+            transition: background-color 0.2s ease, margin-left 0.3s ease; 
+            flex-shrink: 0; 
         }
         #resizer:hover,
         #resizer.resizing {
@@ -152,7 +150,6 @@
         /* v1.1.6: 側邊欄收合時隱藏調整器 */
         body.sidebar-collapsed #resizer {
             margin-left: calc(-1 * var(--sidebar-width));
-            /* 隱藏調整器，因為它沒有意義了 */
             visibility: hidden;
         }
 
@@ -244,13 +241,13 @@
     </div>
     
     <!-- 
-      v1.1.6 修正: 
-      - 確保 D3 函式庫先載入
-      - 明確指向 markmap 函式庫的 'dist/index.min.js' 檔案
+      v1.1.7 修正: 
+      - 使用 .umd.js (Universal Module Definition) 檔案，確保瀏覽器相容性
+      - 這些檔案會建立 window.markmapLib 和 window.markmapView
     -->
     <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.17/dist/index.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/markmap-view@0.17/dist/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.17/dist/browser/index.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/markmap-view@0.17/dist/browser/index.umd.js"></script>
 
     <script>
         // =================================================================
@@ -267,10 +264,10 @@
         let activeLink = null;
         let mm; // Markmap 實例
 
-        // v1.1.6: 宣告 transformer 變數，以便在函式庫載入後初始化
+        // v1.1.7: 宣告 transformer 變數
         let transformer;
 
-        // ====== 1. Markmap 渲染核心函式 (v1.1.6) ======
+        // ====== 1. Markmap 渲染核心函式 (v1.1.7) ======
         async function renderMarkmap(filePath, sourceLink) {
             const markmapStatus = document.getElementById('markmap-status');
             const markmapEl = document.getElementById('markmap');
@@ -285,9 +282,9 @@
             markmapStatus.style.display = 'block';
 
             try {
-                // v1.1.6 修正: 
-                // 檢查 transformer (來自 markmap-lib) 和 Markmap (來自 markmap-view) 是否已準備好
-                if (!transformer || typeof window.markmap?.Markmap?.create !== 'function') {
+                // v1.1.7 修正: 
+                // 檢查 transformer (來自 markmapLib) 和 Markmap (來自 markmapView)
+                if (!transformer || typeof window.markmapView?.Markmap?.create !== 'function') {
                     throw new Error("Markmap 函式庫尚未載入完成。");
                 }
 
@@ -299,13 +296,14 @@
                 }
                 const markdownContent = await response.text();
                 
-                const { Markmap } = window.markmap; 
+                // v1.1.7 修正: 從 window.markmapView 取得 Markmap
+                const { Markmap } = window.markmapView; 
                 
                 if (!markdownContent.trim()) {
                     throw new Error("檔案內容為空。");
                 }
                 
-                // v1.1.6 修正: 使用 transformer 實例的 .transform() 方法
+                // v1.1.7 修正: 使用 transformer 實例的 .transform() 方法
                 const { root, features } = transformer.transform(markdownContent);
                 
                 markmapStatus.style.display = 'none';
@@ -329,7 +327,8 @@
             }
         }
 
-        // ====== 2. 檔案樹資料處理 (v1.1.6) ======
+        // ====== 2. 檔案樹資料處理 (v1.1.7) ======
+        // (此函式庫無變更)
         async function fetchFileTree() {
             const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/git/trees/${BRANCH_NAME}?recursive=1`;
             
@@ -347,7 +346,8 @@
                 .filter(item => item.type === 'blob' && item.path.endsWith(MARKDOWN_EXTENSION))
                 .map(item => item.path);
         }
-
+        
+        // (此函式庫無變更)
         function buildTree(paths) {
             const root = { name: 'root', type: 'tree', children: [] };
 
@@ -395,7 +395,8 @@
             return root;
         }
 
-        // ====== 3. 渲染側邊欄 (Tree View) (v1.1.6) ======
+        // ====== 3. 渲染側邊欄 (Tree View) (v1.1.7) ======
+        // (此函式庫無變更)
         function createTreeViewNode(node) {
             const li = document.createElement('li');
             li.className = 'tree-node';
@@ -426,7 +427,7 @@
                 const link = document.createElement('a');
                 link.className = 'tree-file';
                 link.href = `#${node.path}`;
-                link.textContent = node.name; // v1.1.1 修正: 移除 📝 圖示
+                link.textContent = node.name;
                 link.dataset.path = node.path; 
                 
                 link.addEventListener('click', (e) => {
@@ -439,7 +440,8 @@
             }
             return li;
         }
-
+        
+        // (此函式庫無變更)
         function findAndSelectFile(path) {
             const link = fileLinksMap.get(path);
             if (!link) {
@@ -462,13 +464,13 @@
             return true;
         }
 
-        // ====== 4. 初始化應用程式 (v1.1.6) ======
+        // ====== 4. 初始化應用程式 (v1.1.7) ======
         async function initializeApp() {
             const container = document.getElementById('file-tree-container');
             const statusEl = document.getElementById('sidebar-status');
 
             try {
-                // v1.1.6 修正: transformer 在 'load' 事件中初始化，這裡直接使用
+                // v1.1.7: transformer 在 'load' 事件中初始化，這裡直接使用
                 if (!transformer) {
                     throw new Error("Markmap-lib (Transformer) 載入失敗。");
                 }
@@ -484,7 +486,7 @@
                 
                 const rootUl = document.createElement('ul');
                 
-                // v1.1.6 修正: 建立一個代表儲存庫的根節點，使其可收合
+                // v1.1.6: 建立一個代表儲存庫的根節點，使其可收合
                 const repoNode = { name: REPO_NAME, type: 'tree', children: tree.children };
                 const repoLi = createTreeViewNode(repoNode);
                 
@@ -493,7 +495,6 @@
                 
                 rootUl.appendChild(repoLi);
                 container.appendChild(rootUl);
-                // --- 修正結束 ---
 
                 const hashPath = window.location.hash.substring(1);
                 let loaded = false;
@@ -516,7 +517,8 @@
             }
         }
         
-        // ====== 5. 處理瀏覽器返回/前進按鈕 (v1.1.6) ======
+        // ====== 5. 處理瀏覽器返回/前進按鈕 (v1.1.7) ======
+        // (此函式庫無變更)
         window.addEventListener('popstate', (event) => {
             let path;
             if (event.state && event.state.path) {
@@ -530,7 +532,8 @@
             }
         });
 
-        // ====== 6. 處理側邊欄寬度調整 (v1.1.6) ======
+        // ====== 6. 處理側邊欄寬度調整 (v1.1.7) ======
+        // (此函式庫無變更)
         function setupResizer() {
             const resizer = document.getElementById('resizer');
             if (!resizer) return;
@@ -543,7 +546,7 @@
             const resize = (e) => {
                 if (!isResizing) return;
                 const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                let newWidth = clientX; // v1.1.6 修正: 寬度就是滑鼠 X 座標
+                let newWidth = clientX; 
                 
                 const minWidth = parseInt(getComputedStyle(sidebar).minWidth, 10);
                 const maxWidth = parseInt(getComputedStyle(sidebar).maxWidth, 10);
@@ -570,7 +573,8 @@
             });
         }
 
-        // ====== 7. v1.1.6: 處理側邊欄開關按鈕 ======
+        // ====== 7. 處理側邊欄開關按鈕 (v1.1.7) ======
+        // (此函式庫無變更)
         function setupSidebarToggle() {
             const toggleBtn = document.getElementById('sidebar-toggle');
             if (!toggleBtn) return;
@@ -583,24 +587,38 @@
         }
 
 
-        // v1.1.6 修正: 使用 'load' 事件
+        // v1.1.7 修正: 重新組織 'load' 事件處理
         window.addEventListener('load', () => {
+            // v1.1.7 修正: 先設定 UI 功能，它們不依賴 Markmap
+            setupResizer(); 
+            setupSidebarToggle();
+
             try {
-                // v1.1.6 修正: 在 'load' 事件中，函式庫保證已載入
-                // 立即初始化 transformer 實例
-                transformer = new window.markmap.Transformer();
+                // v1.1.7 修正: 檢查 UMD 函式庫是否已載入
+                if (!window.markmapLib || !window.markmapView) {
+                    throw new Error("Markmap CDN 腳本 (lib or view) 載入失敗。");
+                }
                 
-                // 執行所有設定
-                setupResizer(); 
-                setupSidebarToggle();
+                // v1.1.7 修正: 正確初始化 Transformer
+                const { Transformer } = window.markmapLib;
+                transformer = new Transformer();
+                
+                // 現在 Markmap 函式庫準備好了，開始載入檔案樹
                 initializeApp();
 
             } catch (e) {
                 console.error("Markmap 函式庫初始化失敗:", e);
                 const statusEl = document.getElementById('sidebar-status');
                 if (statusEl) {
-                    statusEl.textContent = `❌ 嚴重錯誤: Markmap 函式庫載入失敗。`;
+                    statusEl.textContent = `❌ 嚴重錯誤: ${e.message}`;
                     statusEl.className = 'sidebar-status error';
+                }
+                // 即使 Markmap 失敗，也要確保 Markmap 區域顯示錯誤
+                const markmapStatus = document.getElementById('markmap-status');
+                if (markmapStatus) {
+                    markmapStatus.textContent = `❌ 函式庫載入失敗: ${e.message}`;
+                    markmapStatus.className = 'status-message error';
+                    markmapStatus.style.display = 'block';
                 }
             }
         });
