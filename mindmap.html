@@ -3,11 +3,11 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markmap 樹狀檢視器 v1.1.4</title>
+    <title>Markmap 樹狀檢視器 v1.1.5</title>
     <style>
         :root { --sidebar-width: 320px; }
         body { margin: 0; display: flex; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #333; background-color: #fff; height: 100vh; overflow: hidden; }
-        #sidebar { width: var(--sidebar-width); min-width: 200px; max-width: 80vw; height: 100vh; overflow-y: auto; border-right: 1px solid #e0e0e0; box-sizing: border-box; background-color: #f9f9f9; box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05); padding: 0; user-select: none; }
+        #sidebar { width: var(--sidebar-width); min-width: 200px; max-width: 80vw; height: 100vh; overflow-y: auto; border-right: 1px solid #e0e0e0; box-sizing: border-box; background-color: #f9f9f9; }
         #sidebar-header { padding: 20px 25px; margin: 0; color: #1a73e8; font-size: 1.25rem; border-bottom: 2px solid #1a73e8; background-color: #fff; position: sticky; top: 0; z-index: 10; }
         #file-tree-container { padding: 10px 20px; }
         .tree-node { list-style-type: none; margin: 2px 0; }
@@ -17,14 +17,14 @@
         .tree-folder-title .icon { display: inline-block; width: 16px; text-align: center; margin-right: 5px; transition: transform 0.1s ease-in-out; }
         .tree-node.collapsed > .tree-folder-title .icon { transform: rotate(-90deg); }
         .tree-node.collapsed > ul { display: none; }
-        .tree-file { display: block; padding: 5px 8px 5px 30px; text-decoration: none; color: #444; border-radius: 6px; transition: all 0.2s ease; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: text; }
+        .tree-file { display: block; padding: 5px 8px 5px 30px; text-decoration: none; color: #444; border-radius: 6px; transition: all 0.2s ease; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .tree-file:hover { background-color: #e0e7ff; color: #1a73e8; }
         .tree-file.active { font-weight: bold; background-color: #1a73e8; color: #ffffff; border-color: #1a73e8; }
         #resizer { width: 5px; height: 100vh; background: #f1f1f1; cursor: col-resize; transition: background-color 0.2s ease; }
         #resizer:hover, #resizer.resizing { background: #1a73e8; }
         #markmap-container { flex-grow: 1; height: 100vh; overflow: hidden; position: relative; width: 0; }
         #markmap { display: block; width: 100%; height: 100%; }
-        .status-message { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5rem; color: #777; padding: 20px; background-color: rgba(255, 255, 255, 0.8); border-radius: 8px; }
+        .status-message { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5rem; color: #777; padding: 20px; background-color: rgba(255, 255, 255, 0.8); border-radius: 12px; pointer-events: none; }
         .status-message.error { color: #D32F2F; }
         .sidebar-status { padding: 20px; font-size: 1rem; color: #777; }
         .sidebar-status.error { color: #D32F2F; }
@@ -58,6 +58,19 @@
         let markmapReady = false;
         let pendingMarkmapRender = [];
 
+        // --- v1.1.5: Always log errors to console, even those not surfaced in UI ---
+
+        function logError(msg, err) {
+            // Always log detailed error to console for easier debugging.
+            if (err instanceof Error) {
+                console.error(msg, err);
+            } else if (err) {
+                console.error(msg, err);
+            } else {
+                console.error(msg);
+            }
+        }
+
         function checkMarkmapReady() {
             return (typeof window.markmap?.transform === 'function') &&
                 (typeof window.markmap?.Markmap?.create === 'function');
@@ -66,7 +79,6 @@
         // Run this once Markmap is loaded
         function onMarkmapLibraryReady() {
             markmapReady = true;
-            // Process any queued render requests
             while (pendingMarkmapRender.length > 0) {
                 const [filePath, sourceLink] = pendingMarkmapRender.shift();
                 renderMarkmap(filePath, sourceLink);
@@ -78,12 +90,15 @@
             if (checkMarkmapReady()) {
                 onMarkmapLibraryReady();
             } else {
-                // Retry with requestIdleCallback for low priority
                 window.requestIdleCallback(() => {
                     if (checkMarkmapReady()) {
                         onMarkmapLibraryReady();
                     } else {
                         setTimeout(waitForMarkmapLibAndRun, 150);
+                        // v1.1.5: log error if repeatedly failing
+                        if (!markmapReady) {
+                            logError("Markmap library not loaded yet.");
+                        }
                     }
                 }, {timeout:500});
             }
@@ -98,6 +113,8 @@
                 markmapStatus.textContent = "正在等待 Markmap 函式庫載入...";
                 markmapStatus.className = "status-message";
                 markmapStatus.style.display = "block";
+                // v1.1.5: always log waiting/error for Markmap
+                logError("Waiting for Markmap library to be ready before rendering.", null);
                 return;
             }
             if (mm) { mm.destroy(); mm = null; }
@@ -122,7 +139,7 @@
                     history.pushState({ path: filePath }, null, `#${filePath}`);
                 }
             } catch (error) {
-                console.error("Markmap 渲染錯誤:", error);
+                logError("Markmap 渲染錯誤:", error);
                 markmapStatus.textContent = `❌ 渲染錯誤: ${error.message}`;
                 markmapStatus.className = 'status-message error';
             }
@@ -142,7 +159,7 @@
                     .filter(item => item.type === 'blob' && item.path.endsWith(MARKDOWN_EXTENSION))
                     .map(item => item.path);
             } catch (err) {
-                console.error('fetchFileTree 錯誤:', err);
+                logError('fetchFileTree 錯誤:', err);
                 throw err;
             }
         }
@@ -247,7 +264,7 @@
                     findAndSelectFile(firstFile);
                 }
             } catch (error) {
-                console.error("初始化應用程式錯誤:", error);
+                logError("初始化應用程式錯誤:", error);
                 statusEl.textContent = `❌ 載入錯誤: ${error.message}`;
                 statusEl.className = 'sidebar-status error';
             }
@@ -257,6 +274,7 @@
             let path = event.state && event.state.path ? event.state.path : window.location.hash.substring(1);
             if (path) findAndSelectFile(path);
         });
+
         function setupResizer() {
             const resizer = document.getElementById('resizer');
             if (!resizer) return;
