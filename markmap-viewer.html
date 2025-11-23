@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub 筆記心智圖瀏覽器</title>
+    <style>
+        /* =========================================
+           CSS 樣式 (Styles)
+           ========================================= */
+        :root {
+            --sidebar-width: 320px;
+            --bg-color: #f4f6f8;
+            --sidebar-bg: #ffffff;
+            --text-color: #333;
+            --border-color: #e1e4e8;
+            --active-color: #0366d6;
+            --hover-color: #f1f8ff;
+            --resizer-width: 5px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            overflow: hidden; /* 防止整體滾動 */
+            background-color: var(--bg-color);
+        }
+
+        /* --- 左側欄 (Sidebar) --- */
+        #sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            transition: width 0.1s ease; /* 調整時平滑一點，但主要是為了收闔 */
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            background: #f6f8fa;
+        }
+
+        .sidebar-header h2 {
+            margin: 0;
+            font-size: 16px;
+            color: #24292e;
+        }
+
+        .sidebar-status {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            min-height: 1.2em;
+        }
+
+        #tree-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        /* 樹狀結構樣式 */
+        ul.tree-list {
+            list-style: none;
+            padding-left: 16px;
+            margin: 0;
+        }
+
+        /* 根節點的第一層不需要縮排 */
+        #tree-container > ul.tree-list {
+            padding-left: 0;
+        }
+
+        li.tree-node {
+            margin: 2px 0;
+        }
+
+        /* 資料夾標題 */
+        .tree-folder-title {
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            font-weight: 600;
+            font-size: 14px;
+            color: #24292e;
+            user-select: none;
+        }
+
+        .tree-folder-title:hover {
+            background-color: var(--hover-color);
+        }
+
+        .tree-folder-title .icon {
+            display: inline-block;
+            width: 12px;
+            margin-right: 8px;
+            font-size: 10px;
+            transition: transform 0.2s;
+            /* 預設是展開狀態 (向下)，圖示用 ▶ 旋轉 90度 */
+            transform: rotate(90deg); 
+        }
+
+        /* 檔案連結 */
+        a.tree-file {
+            display: block;
+            text-decoration: none;
+            color: #586069;
+            padding: 4px 8px 4px 24px; /* 縮排避開圖示位置 */
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        a.tree-file:hover {
+            background-color: var(--hover-color);
+            color: var(--active-color);
+        }
+
+        a.tree-file.active {
+            background-color: var(--active-color);
+            color: white;
+        }
+
+        /* 收闔狀態邏輯 */
+        /* 當 li.tree-node 有 collapsed class 時 */
+        li.tree-node.collapsed > ul {
+            display: none;
+        }
+        
+        /* 當收闔時，圖示轉回原狀 (向右) */
+        li.tree-node.collapsed > .tree-folder-title .icon {
+            transform: rotate(0deg);
+        }
+
+        /* --- 調整器 (Resizer) --- */
+        #resizer {
+            width: var(--resizer-width);
+            background-color: transparent;
+            cursor: col-resize;
+            flex-shrink: 0;
+            z-index: 10;
+            transition: background-color 0.2s;
+        }
+
+        #resizer:hover, #resizer.resizing {
+            background-color: var(--active-color);
+        }
+
+        /* --- 右側內容區 (Markmap) --- */
+        #markmap-container {
+            flex-grow: 1;
+            height: 100vh;
+            position: relative;
+            background-color: white;
+            display: flex;
+            flex-direction: column;
+            min-width: 0; /* 防止 flex item 溢出 */
+        }
+
+        #sidebar-toggle {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 5px 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            font-size: 14px;
+            user-select: none;
+        }
+
+        #sidebar-toggle:hover {
+            background-color: var(--hover-color);
+        }
+
+        .status-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #666;
+            font-size: 1.2em;
+            text-align: center;
+            pointer-events: none; /* 讓點擊穿透到 canvas */
+        }
+
+        svg#markmap {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* --- 側邊欄收闔模式 (Sidebar Collapsed) --- */
+        /* 關鍵 CSS：當 body 有 sidebar-collapsed 時隱藏側邊欄和調整器 */
+        body.sidebar-collapsed #sidebar,
+        body.sidebar-collapsed #resizer {
+            display: none;
+        }
+
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.17.0/dist/index.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/markmap-view@0.17.0/dist/index.umd.js"></script>
+</head>
+<body>
+
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <h2>GitHub Notes</h2>
+            <div id="sidebar-status" class="sidebar-status">初始化中...</div>
+        </div>
+        <div id="tree-container">
+            </div>
+    </div>
+
+    <div id="resizer"></div>
+
+    <div id="markmap-container">
+        <button id="sidebar-toggle" title="切換側邊欄">❮</button>
+        <div id="main-status" class="status-message">請從左側選擇一個筆記檔案</div>
+        <svg id="markmap"></svg>
+    </div>
+
+    <script>
+        /* =========================================
+           2. 關鍵 GitHub 設定 (Configurable Constants)
+           ========================================= */
+        const GITHUB_USERNAME = 'klhrd';
+        const REPO_NAME = 'class_note';
+        const BRANCH_NAME = 'main'; // 視情況改為 'master'
+
+        // 全域變數
+        let transformer = null;
+        let mm = null; // Markmap instance
+        const fileLinksMap = new Map(); // 用於 Deep Linking: Path -> DOM Element
+
+        /* =========================================
+           4.4 關鍵啟動流程 (Initialization)
+           ========================================= */
+        window.addEventListener('load', async () => {
+            // 1. 優先設定 UI
+            setupResizer();
+            setupSidebarToggle();
+
+            const sidebarStatus = document.getElementById('sidebar-status');
+            const mainStatus = document.getElementById('main-status');
+
+            // 2. 初始化 Markmap Transformer
+            try {
+                if (!window.markmapLib || !window.markmapView) {
+                    throw new Error("Markmap 函式庫載入失敗");
+                }
+                const { Transformer } = window.markmapLib;
+                transformer = new Transformer();
+                sidebarStatus.innerText = "正在抓取檔案列表...";
+            } catch (error) {
+                console.error(error);
+                sidebarStatus.innerText = "❌ 函式庫錯誤";
+                mainStatus.innerText = "❌ Markmap 函式庫載入失敗，請檢查網路連線。";
+                return;
+            }
+
+            // 3. 載入資料並啟動應用
+            try {
+                await initializeApp();
+            } catch (error) {
+                console.error(error);
+                sidebarStatus.innerText = `❌ API 錯誤: ${error.message}`;
+                mainStatus.innerText = "❌ 無法載入儲存庫資料，請檢查設定或 API 限制。";
+            }
+        });
+
+        /* =========================================
+           核心邏輯函式
+           ========================================= */
+
+        async function initializeApp() {
+            // 1. 抓取檔案樹
+            const treeUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/git/trees/${BRANCH_NAME}?recursive=1`;
+            const response = await fetch(treeUrl);
+            
+            if (!response.ok) {
+                if (response.status === 403) throw new Error("API Rate Limit Exceeded");
+                if (response.status === 404) throw new Error("Repository Not Found");
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            // 2. 資料處理：過濾並建構樹狀結構
+            // 只保留 .md 檔案
+            const mdFiles = data.tree.filter(item => item.type === 'blob' && item.path.endsWith('.md'));
+            
+            // 轉換為巢狀物件
+            const fileTree = buildFileTreeStructure(mdFiles);
+
+            // 3. DOM 渲染：建立檔案樹
+            // 根據需求，整個樹要包在一個以 REPO_NAME 命名的根節點中
+            const rootNode = {
+                name: REPO_NAME,
+                type: 'folder',
+                children: fileTree,
+                path: '' // 根目錄路徑為空
+            };
+
+            const treeContainer = document.getElementById('tree-container');
+            const rootUl = document.createElement('ul');
+            rootUl.className = 'tree-list';
+            
+            // 渲染根節點
+            const rootDom = createTreeViewNode(rootNode, true); // isRoot = true
+            rootUl.appendChild(rootDom);
+            treeContainer.appendChild(rootUl);
+
+            document.getElementById('sidebar-status').innerText = "就緒";
+
+            // 4. Deep Linking & 預設載入
+            const currentHash = window.location.hash.slice(1); // 移除 #
+            if (currentHash) {
+                findAndSelectFile(decodeURIComponent(currentHash));
+            } else {
+                // 嘗試載入 README.md 或第一個檔案
+                const readmePath = mdFiles.find(f => f.path.toLowerCase() === 'readme.md')?.path;
+                const firstPath = mdFiles.length > 0 ? mdFiles[0].path : null;
+                const defaultPath = readmePath || firstPath;
+                
+                if (defaultPath) {
+                    findAndSelectFile(defaultPath);
+                }
+            }
+        }
+
+        // 將扁平路徑列表轉換為樹狀物件
+        function buildFileTreeStructure(items) {
+            const root = [];
+            
+            items.forEach(item => {
+                const parts = item.path.split('/');
+                let currentLevel = root;
+                
+                parts.forEach((part, index) => {
+                    const isFile = index === parts.length - 1;
+                    // 檢查當前層級是否已存在該節點
+                    let existingNode = currentLevel.find(n => n.name === part);
+                    
+                    if (!existingNode) {
+                        const newNode = {
+                            name: part,
+                            type: isFile ? 'file' : 'folder',
+                            path: isFile ? item.path : parts.slice(0, index + 1).join('/'), // 資料夾也存路徑以便追蹤
+                            children: isFile ? null : []
+                        };
+                        currentLevel.push(newNode);
+                        existingNode = newNode;
+                    }
+                    
+                    if (!isFile) {
+                        currentLevel = existingNode.children;
+                    }
+                });
+            });
+
+            // 對每一層進行排序：資料夾在先，檔案在後，然後按字母排序
+            const sortNodes = (nodes) => {
+                nodes.sort((a, b) => {
+                    if (a.type === b.type) return a.name.localeCompare(b.name);
+                    return a.type === 'folder' ? -1 : 1;
+                });
+                nodes.forEach(node => {
+                    if (node.children) sortNodes(node.children);
+                });
+            };
+            sortNodes(root);
+
+            return root;
+        }
+
+        // 遞迴渲染函式
+        function createTreeViewNode(node, isRoot = false) {
+            const li = document.createElement('li');
+            li.className = 'tree-node';
+
+            if (node.type === 'folder') {
+                // 預設收闔 (除了根節點，為了方便通常根節點預設展開，但這裡遵照需求邏輯)
+                // 需求：資料夾節點預設應為收闔 (.collapsed)
+                // 根節點通常需要展開才看得到內容，這裡我們讓根節點預設展開，其他收闔
+                if (!isRoot) {
+                    li.classList.add('collapsed'); 
+                }
+
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'tree-folder-title';
+                titleDiv.innerHTML = `<span class="icon">▶</span> ${node.name}`;
+                
+                titleDiv.onclick = (e) => {
+                    e.stopPropagation();
+                    li.classList.toggle('collapsed');
+                };
+
+                li.appendChild(titleDiv);
+
+                const ul = document.createElement('ul');
+                ul.className = 'tree-list';
+                node.children.forEach(child => {
+                    ul.appendChild(createTreeViewNode(child));
+                });
+                li.appendChild(ul);
+
+            } else {
+                // 檔案節點
+                const a = document.createElement('a');
+                a.className = 'tree-file';
+                a.innerText = node.name;
+                a.dataset.path = node.path;
+                
+                // 儲存到 Map 以便 Deep Linking 搜尋
+                fileLinksMap.set(node.path, a);
+
+                a.onclick = (e) => {
+                    e.preventDefault();
+                    handleFileClick(node.path, a);
+                };
+                li.appendChild(a);
+            }
+            return li;
+        }
+
+        // 處理檔案點擊
+        function handleFileClick(path, element) {
+            // 更新 UI Active 狀態
+            document.querySelectorAll('.tree-file.active').forEach(el => el.classList.remove('active'));
+            if (element) element.classList.add('active');
+
+            // 更新 Hash
+            history.pushState(null, null, '#' + path);
+
+            // 渲染 Markmap
+            renderMarkmap(path);
+        }
+
+        /* =========================================
+           3.3 Markmap 渲染邏輯
+           ========================================= */
+        async function renderMarkmap(filePath) {
+            const svgEl = document.getElementById('markmap');
+            const statusEl = document.getElementById('main-status');
+            
+            // 清除舊的
+            if (mm) {
+                mm.destroy();
+                mm = null;
+            }
+            svgEl.innerHTML = ''; // 清空 SVG 內部
+            statusEl.innerText = "正在載入...";
+            statusEl.style.display = 'block';
+
+            try {
+                const rawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH_NAME}/${filePath}`;
+                const res = await fetch(rawUrl);
+                
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const markdownContent = await res.text();
+
+                if (markdownContent.trim() === '') {
+                    statusEl.innerText = "⚠️ 檔案內容為空";
+                    return;
+                }
+
+                // 隱藏載入訊息
+                statusEl.style.display = 'none';
+
+                // 呼叫 Markmap 渲染
+                if (!transformer) throw new Error("Transformer 尚未初始化");
+                const { Markmap } = window.markmapView;
+
+                const { root, features } = transformer.transform(markdownContent);
+                mm = Markmap.create(svgEl, null, root);
+
+            } catch (error) {
+                console.error(error);
+                statusEl.innerText = `❌ 渲染錯誤: ${error.message}`;
+                statusEl.style.display = 'block';
+            }
+        }
+
+        /* =========================================
+           3.6 Deep Linking 邏輯
+           ========================================= */
+        function findAndSelectFile(path) {
+            const linkElement = fileLinksMap.get(path);
+            
+            if (linkElement) {
+                // 1. 展開所有父資料夾
+                let parent = linkElement.parentElement; // li
+                while (parent) {
+                    if (parent.tagName === 'LI' && parent.classList.contains('tree-node')) {
+                        parent.classList.remove('collapsed');
+                    }
+                    parent = parent.parentElement; // ul -> li
+                }
+
+                // 2. 觸發點擊邏輯 (渲染 + active 樣式 + hash)
+                handleFileClick(path, linkElement);
+
+                // 3. 捲動到可視範圍
+                setTimeout(() => {
+                    linkElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+            } else {
+                document.getElementById('main-status').innerText = `❌ 找不到檔案: ${path}`;
+            }
+        }
+
+        /* =========================================
+           3.4 側邊欄寬度調整 (Resizer)
+           ========================================= */
+        function setupResizer() {
+            const resizer = document.getElementById('resizer');
+            
+            resizer.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                resizer.classList.add('resizing');
+                document.body.style.cursor = 'col-resize';
+
+                const onPointerMove = (e) => {
+                    // 限制最小寬度 150px, 最大寬度 50%
+                    const newWidth = Math.max(150, Math.min(e.clientX, document.body.clientWidth * 0.6));
+                    document.documentElement.style.setProperty('--sidebar-width', `${newWidth}px`);
+                };
+
+                const onPointerUp = () => {
+                    resizer.classList.remove('resizing');
+                    document.body.style.cursor = 'default';
+                    document.removeEventListener('pointermove', onPointerMove);
+                    document.removeEventListener('pointerup', onPointerUp);
+                };
+
+                document.addEventListener('pointermove', onPointerMove);
+                document.addEventListener('pointerup', onPointerUp);
+            });
+        }
+
+        /* =========================================
+           3.5 側邊欄開關 (Sidebar Toggle)
+           ========================================= */
+        function setupSidebarToggle() {
+            const btn = document.getElementById('sidebar-toggle');
+            
+            btn.addEventListener('click', () => {
+                document.body.classList.toggle('sidebar-collapsed');
+                
+                // 更新按鈕文字
+                const isCollapsed = document.body.classList.contains('sidebar-collapsed');
+                btn.innerText = isCollapsed ? '❯' : '❮';
+                
+                // 如果已經渲染了 markmap，需要 resize (因為容器寬度變了)
+                if (mm) {
+                    setTimeout(() => {
+                        mm.fit(); // 重新適應大小
+                    }, 200); // 等待 CSS transition
+                }
+            });
+        }
+
+    </script>
+</body>
+</html>
