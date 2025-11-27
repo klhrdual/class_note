@@ -1,5 +1,6 @@
-# mindmsp
-- [mindmap](https://klhrdual.github.io/class_note/mindmap)
+# md
+- [markdown](https://klhrdual.github.io/class_note/md_viewer)
+- [mindmap](https://klhrdual.github.io/class_note/markmap-viewer)
 
 # class_note
 my class note  
