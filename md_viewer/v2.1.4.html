@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Markdown 筆記/心智圖檢視器 v2.1.4</title>
+    <title>Markdown 筆記/心智圖檢視器A v2.1.4</title>
     
     <!-- D3.js -->
     <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
@@ -215,7 +215,7 @@
     <div id="main-container">
         <div id="header-bar">
             <button class="icon-btn" id="sidebar-toggle" title="切換側邊欄">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x[...]
             </button>
             <button class="icon-btn" id="mode-cycle-btn" title="切換檢視模式">
                 <span id="mode-icon" style="font-size:18px;">📄</span> 
@@ -565,7 +565,13 @@
                   return document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
                 })
                   .attr('class', 'node-content-div')
-                  .each(function(d) { this.innerHTML = d.data.html; });
+                  .each(function(d) {
+                      // d is a d3.hierarchy node; the original parsed node is at d.data
+                      // the parsed node itself stores html at node.data.html, so when wrapped by d3.hierarchy
+                      // the path becomes d.data.data.html — handle both cases for robustness.
+                      const html = (d && d.data && (d.data.data ? d.data.data.html : d.data.html)) || '';
+                      this.innerHTML = html;
+                  });
 
                 // Underline
                 nodeEnter.append('path')
