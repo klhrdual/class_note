@@ -560,10 +560,12 @@
                     .attr('x', 0)
                     .attr('y', d => -d.data.height + 5); 
 
-                fo.append('xhtml:div')
-                    .attr('xmlns', 'http://www.w3.org/1999/xhtml') // Explicit Namespace
-                    .attr('class', 'node-content-div')
-                    .html(d => d.data.html);
+                fo.append(function(d) {
+                  // create an HTML div in the XHTML namespace so browsers actually render the foreignObject contents
+                  return document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+                })
+                  .attr('class', 'node-content-div')
+                  .each(function(d) { this.innerHTML = d.data.html; });
 
                 // Underline
                 nodeEnter.append('path')
